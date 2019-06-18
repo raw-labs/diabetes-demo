@@ -125,7 +125,7 @@ def callback_handling():
 
     # initializes raw-client, buckets, etc.
     init_packages(session)
-    return redirect(url_for('machines'))
+    return redirect(url_for('diabetes'))
 
 
 @app.route('/login')
