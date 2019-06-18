@@ -181,7 +181,7 @@ def diabetes_train():
             return dict(prediction=regr.predict(x), coef=regr.coef_, intercept=regr.intercept_)
         $$$;
 
-        dataset := read("s3://raw-tutorial/ipython-demos/diabetes/diabetes_dataset.csv");
+        dataset := read("s3://raw-tutorial/ipython-demos/diabetes/diabetes_dataset.csv", cache := interval "1 hour");
         target := select Y from dataset;
 
         (
