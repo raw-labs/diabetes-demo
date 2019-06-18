@@ -118,7 +118,6 @@
 </div>
 
 <script type="text/javascript" src="/static/js/plotly-latest.min.js"></script>
-
 <script type="text/javascript">
 
 
@@ -154,22 +153,22 @@ $("#create-model-btn").on("click", function(){
 
             Plotly.newPlot("plot1", [
                 {name: "score",  x: feature1, y: target, type: "scatter", mode: "markers"},
-                {name: "linear fit", x: feature1, y: results.predict1, type: "scatter", mode: "line"},
+                {name: "linear fit", x: feature1, y: results.predict1.prediction, type: "scatter", mode: "line"},
             ], { title: f1});
 
 
             Plotly.newPlot("plot2", [
                 {name: "score",  x: feature2, y: target, type: "scatter", mode: "markers"},
-                {name: "linear fit",  x: feature2, y: results.predict2, type: "scatter", mode: "line"},
+                {name: "linear fit",  x: feature2, y: results.predict2.prediction, type: "scatter", mode: "line"},
             ], { title: f2});
 
-            plotValues = [
+            const plotValues = [
                 {name: "scores", x: feature1, y: feature2, z: target, type: "scatter3d", mode: "markers", marker:{size:2}},
-                {name: "linear fit", x: feature1, y: feature2, z: results.predict_both, type: "scatter3d", mode: "markers", marker:{size:2}},
-            ], { title: "{0} and {1}".format(f1, f2)}
+                {name: "linear fit", x: feature1, y: feature2, z: results.predict_both.prediction, type: "scatter3d", mode: "markers", marker:{size:2}},
+            ];
 
 
-            Plotly.newPlot("plot3", plotValues);
+            Plotly.newPlot("plot3", plotValues, { title: "{0} and {1}".format(f1, f2)});
 
             $('#predict-row').removeClass('hidden');
 
@@ -177,44 +176,51 @@ $("#create-model-btn").on("click", function(){
             $('#predict-dialog .slider').attr('min', Math.min(...target));
 
             $('#predict-btn').removeAttr('disabled');
-        }
-    });
-});
 
-$("#predict-btn").on("click", function(){
-    const f1 = $('#predict1').val();
-    const f2 = $('#predict2').val()
-
-    if (f1 == "" || f2 == "" ) {
-        alert("missing value for prediction");
-        return;
-    }
-
-    Utils.request('{{url_for('diabetes_predict')}}', {
-        selector: '#row-plots',
-        data: {f1: f1, f2: f2},
-        success: function(score, widget) {
-            var min = $('#predict-dialog .slider').attr('min')
-            var max = $('#predict-dialog .slider').attr('max')
-            var msg = 'The Score is: ' + score;
-            if (score < 120) {
-                msg += ", great!"
-            } else if (score >= 120 && score < 200) {
-                msg += ", OK"
-            } else {
-                msg += ", be careful!"
+            // function to predict using the coefficients returned by the python UDF
+            function predict(f1, f2) {
+                var coef1 =  results.predict_both.coef[0]
+                var coef2 =  results.predict_both.coef[1]
+                var intercept = results.predict_both.intercept
+                return coef1*f1 + coef2*f2 + intercept
             }
-            console.log(score, min, max)
-            $('#predict-dialog .slider').val(score);
-            $("#predict-dialog .modal-title").html(msg);
-            $("#predict-dialog").modal("show");
 
-            plotValues.push({name: "you are here", x: [f1], y: [f2], z: [score] , type: "scatter3d", mode: "markers", marker:{size:10, color: 'rgb(255, 0, 0)'}})
-            Plotly.newPlot("plot3", plotValues);
+            $("#predict-btn").on("click", function(){
+                const f1 = parseFloat($('#predict1').val());
+                const f2 = parseFloat($('#predict2').val());
+
+                if (f1 == "" || f2 == "" ) {
+                    alert("missing value for prediction");
+                    return;
+                }
+
+                var min = $('#predict-dialog .slider').attr('min')
+                var max = $('#predict-dialog .slider').attr('max')
+
+                score = predict(f1, f2)
+                var msg = 'The Score is: ' + score;
+                if (score < 120) {
+                    msg += ", great!"
+                } else if (score >= 120 && score < 200) {
+                    msg += ", OK"
+                } else {
+                    msg += ", be careful!"
+                }
+                console.log(score, min, max)
+                $('#predict-dialog .slider').val(score);
+                $("#predict-dialog .modal-title").html(msg);
+                $("#predict-dialog").modal("show");
+
+                var newValues = plotValues.slice();
+                newValues.push({name: "you are here", x: [f1], y: [f2], z: [score] , type: "scatter3d", mode: "markers", marker:{size:10, color: 'rgb(255, 0, 0)'}})
+                Plotly.newPlot("plot3", newValues);
+
+            });
         }
     });
-
 });
+
+
 </script>
 
 {% endblock %}

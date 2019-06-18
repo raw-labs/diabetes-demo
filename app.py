@@ -169,14 +169,16 @@ def diabetes_train():
     f1 = request.args.get('f1')
     f2 = request.args.get('f2')
     results = client.query('''
-        predict := \python(x: collection(collection(double)), y: collection(double), name: string): mdarray(double, x) -> $$$
+        predict := \python(x: collection(collection(double)), y: collection(double)): record(
+                                                                                        prediction: mdarray(double, x), 
+                                                                                        coef: mdarray(double, x), 
+                                                                                        intercept: double
+                                                                                    ) -> $$$
             import sklearn
             import sklearn.linear_model
-            import raw_models
             regr = sklearn.linear_model.LinearRegression()
             regr.fit(x, y)
-            raw_models.publish(regr, name)
-            return regr.predict(x)
+            return dict(prediction=regr.predict(x), coef=regr.coef_, intercept=regr.intercept_)
         $$$;
 
         dataset := read("s3://raw-tutorial/ipython-demos/diabetes/diabetes_dataset.csv");
@@ -184,29 +186,10 @@ def diabetes_train():
 
         (
             xyz: (select {0} as x, {1} as y, Y as z from dataset),
-            predict1: predict((select [{0}] from dataset), target, "Feature1"),
-            predict2: predict((select [{1}] from dataset), target, "Feature2"),
-            predict_both: predict((select [{0}, {1}] from dataset), target, "Both")
+            predict1: predict((select [{0}] from dataset), target),
+            predict2: predict((select [{1}] from dataset), target),
+            predict_both: predict((select [{0}, {1}] from dataset), target)
         )'''.format(f1, f2))
-    return jsonify(results)
-
-
-@app.route('/diabetes/predict')
-@requires_auth
-def diabetes_predict():
-    client = create_client(session)
-    f1 = request.args.get('f1')
-    f2 = request.args.get('f2')
-    results = client.query('''
-       predict := \\python(f1: double, f2: double, name: string): double -> $$$
-            import raw_models
-            regr = raw_models.get(name)
-            data = regr.predict([[f1, f2]])
-            return data[0]
-        $$$;
-
-        predict({0}, {1}, "Both")
-        '''.format(f1, f2))
     return jsonify(results)
 
 
