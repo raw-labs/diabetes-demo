@@ -1,0 +1,220 @@
+{% extends 'layouts/main.html' %}
+{% block title %}Machines{% endblock %}
+
+
+{% block content %}
+
+<style>
+.plot {
+  width: 100%;
+  height: 50%;
+}
+
+.plot3d {
+  width: 100%;
+  height: 800px;
+}
+
+.input-col {
+  float: left;
+  width: 200px;
+}
+
+.input-col button {
+    width: 80%;
+}
+
+.input-col select {
+    width: 100%;
+}
+
+.slider {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 15px;
+  outline: none;
+  background-image: linear-gradient(to right, #20ff20, #acf441, yellow, #f4ac41, #ff0000);
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 25px;
+  height: 25px;
+  background: url('/static/img/contrasticon.png') no-repeat;
+  cursor: pointer;
+}
+
+.slider::-moz-range-thumb {
+  width: 25px;
+  height: 25px;
+  background: url('/static/img/contrasticon.png') no-repeat;
+  cursor: pointer;
+}
+
+</style>
+
+<div class="row">
+    <div class="input-col">
+        <select id="feature1" class="form-control" >
+            <option value="BMI">BMI</option>
+            <option value="AGE">Age</option>
+            <option value="SEX">Gender</option>
+            <option value="BP">Blood Pressure</option>
+            <option value="S1">Serum 1</option>
+            <option value="S2">Serum 2</option>
+            <option value="S3">Serum 3</option>
+            <option value="S4">Serum 4</option>
+            <option value="S5">Serum 5</option>
+            <option value="S6">Serum 6</option>
+        </select>
+        <input id="predict1" class="form-control" type="number" placeholder="Value 1">
+    </div>
+    <div class="input-col">
+        <select id="feature2" class="form-control" >
+            <option value="AGE">Age</option>
+            <option value="SEX">Gender</option>
+            <option value="BMI">BMI</option>
+            <option value="BP">Blood Pressure</option>
+            <option value="S1">Serum 1</option>
+            <option value="S2">Serum 2</option>
+            <option value="S3">Serum 3</option>
+            <option value="S4">Serum 4</option>
+            <option value="S5">Serum 5</option>
+            <option value="S6">Serum 6</option>
+        </select>
+        <input id="predict2" class="form-control" type="number" placeholder="Value 2">
+    </div>
+    <div class="input-col">
+        <button class="btn btn-default" type="button" id="create-model-btn">Create Model</button>
+        <button class="btn btn-default" type="button" id="predict-btn" disabled>Predict</button>
+    </div>
+</div>
+<div class="row" id="row-plots">
+    <div class="col-md-5">
+        <div id="plot1" class="plot"></div>
+        <div id="plot2" class="plot"></div>
+    </div>
+    <div class="col-md-7">
+        <div id="plot3" class="plot3d"></div>
+    </div>
+
+</div>
+
+<div class="modal fade" tabindex="-1" role="dialog" id="predict-dialog">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                <h4 class="modal-title">The Score is:</h4>
+            </div>
+            <div class="modal-body">
+                <div class="slidecontainer">
+                    <input type="range" min="1" max="100" value="50" class="slider" id="myRange" disabled>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript" src="/static/js/plotly-latest.min.js"></script>
+
+<script type="text/javascript">
+
+
+plotValues = undefined;
+
+//$("#predict-dialog").modal("show");
+Plotly.newPlot("plot1", [
+    {name: "feature 1",  x: [], y: [], type: "scatter", mode: "markers"},
+    {name: "prediction",  x: [], y: [], type: "scatter", mode: "line"}
+]);
+
+Plotly.newPlot("plot2", [
+    {name: "feature 2",  x: [], y: [], type: "scatter", mode: "markers"},
+    {name: "prediction",  x: [], y: [], type: "scatter", mode: "line"}
+]);
+
+
+Plotly.newPlot("plot3", [
+    {name: "feature 1", z: [], y: [], z: [], type: "scatter3d"},
+]);
+
+
+$("#create-model-btn").on("click", function(){
+    const f1 = $('#feature1').val();
+    const f2 = $('#feature2').val()
+    Utils.request('{{url_for('diabetes_train')}}', {
+        selector: '#row-plots',
+        data: {f1: f1, f2: f2},
+        success: function(results, widget) {
+            var target = results.xyz.map(function(x) {return x.z;});
+            var feature1 = results.xyz.map(function(x) {return x.x;});
+            var feature2 = results.xyz.map(function(x) {return x.y;});
+
+            Plotly.newPlot("plot1", [
+                {name: "score",  x: feature1, y: target, type: "scatter", mode: "markers"},
+                {name: "linear fit", x: feature1, y: results.predict1, type: "scatter", mode: "line"},
+            ], { title: f1});
+
+
+            Plotly.newPlot("plot2", [
+                {name: "score",  x: feature2, y: target, type: "scatter", mode: "markers"},
+                {name: "linear fit",  x: feature2, y: results.predict2, type: "scatter", mode: "line"},
+            ], { title: f2});
+
+            plotValues = [
+                {name: "scores", x: feature1, y: feature2, z: target, type: "scatter3d", mode: "markers", marker:{size:2}},
+                {name: "linear fit", x: feature1, y: feature2, z: results.predict_both, type: "scatter3d", mode: "markers", marker:{size:2}},
+            ], { title: "{0} and {1}".format(f1, f2)}
+
+
+            Plotly.newPlot("plot3", plotValues);
+
+            $('#predict-row').removeClass('hidden');
+
+            $('#predict-dialog .slider').attr('max', Math.max(...target));
+            $('#predict-dialog .slider').attr('min', Math.min(...target));
+
+            $('#predict-btn').removeAttr('disabled');
+        }
+    });
+});
+
+$("#predict-btn").on("click", function(){
+    const f1 = $('#predict1').val();
+    const f2 = $('#predict2').val()
+
+    if (f1 == "" || f2 == "" ) {
+        alert("missing value for prediction");
+        return;
+    }
+
+    Utils.request('{{url_for('diabetes_predict')}}', {
+        selector: '#row-plots',
+        data: {f1: f1, f2: f2},
+        success: function(score, widget) {
+            var min = $('#predict-dialog .slider').attr('min')
+            var max = $('#predict-dialog .slider').attr('max')
+            var msg = 'The Score is: ' + score;
+            if (score < 120) {
+                msg += ", great!"
+            } else if (score >= 120 && score < 200) {
+                msg += ", OK"
+            } else {
+                msg += ", be careful!"
+            }
+            console.log(score, min, max)
+            $('#predict-dialog .slider').val(score);
+            $("#predict-dialog .modal-title").html(msg);
+            $("#predict-dialog").modal("show");
+
+            plotValues.push({name: "you are here", x: [f1], y: [f2], z: [score] , type: "scatter3d", mode: "markers", marker:{size:10, color: 'rgb(255, 0, 0)'}})
+            Plotly.newPlot("plot3", plotValues);
+        }
+    });
+
+});
+</script>
+
+{% endblock %}

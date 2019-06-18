@@ -1,0 +1,116 @@
+<!doctype html>
+<head>
+    <meta charset="utf-8">
+    <title>{% block title %}{% endblock %} - RAW</title>
+
+    <!-- meta -->
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta property="og:locale" content="en_US"/>
+    <meta property="og:type" content="article"/>
+    <meta property="og:title" content='RAW DEMO'/>
+    <meta property="og:description"
+          content="Analyze raw data in place, simply and efficiently with RAW. Still stuck with databases?"/>
+    <meta property="og:site_name" content="RAW Demo"/>
+    <!-- /meta -->
+
+    <!-- styles -->
+<!--    <link type="text/css" rel="stylesheet" href="/static/css/font-awesome-4.1.0.min.css"/>-->
+    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+    <link type="text/css" rel="stylesheet" href="/static/css/main.css"/>
+    <link type="text/css" rel="stylesheet" href="/static/css/main.responsive.css"/>
+    <link type="text/css" rel="stylesheet" href="/static/css/main.quickfix.css"/>
+<!--&lt;!&ndash;    &lt;!&ndash; /styles &ndash;&gt;&ndash;&gt;-->
+
+    <!-- favicons -->
+    <link rel="icon" type="image/x-icon" href='/static/ico/favicon.ico")'>
+    <!-- /favicons -->
+
+    <!-- scripts -->
+    <script src="/static/js/libs/modernizr-2.8.2.min.js"></script>
+    <!--[if lt IE 9]>
+    <script src="/static/js/libs/respond-1.4.2.min.js"></script><![endif]-->
+    <!-- /scripts -->
+    <link type="text/css" rel="stylesheet" href="/static/css/layout.main.css"/>
+<style>
+
+</style>
+</head>
+<body>
+
+<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script type="text/javascript" src="/static/js/spin.min.js"></script>
+<script type="text/javascript" src="/static/js/utils.js"></script>
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.8.0/css/bootstrap-datepicker.css">
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.8.0/js/bootstrap-datepicker.js"></script>
+
+
+<!-- Fixed navbar -->
+<div class="navbar navbar-default navbar-fixed-top">
+    <div class="container-fluid">
+        <div class="navbar-header">
+            <a class="navbar-brand" href="/"><img src="/static/img/logo-raw.png" style="margin-top: -10px; height: 40px;"></a>
+        </div>
+
+        <ul class="nav navbar-nav">
+            <li {% if request.endpoint=='diabetes' %} class="active" {% endif %}><a href="{{ url_for('diabetes') }}">Diabetes Model</a></li>
+        </ul>
+        <ul class="nav navbar-nav navbar-right">
+            {% if 'profile' in session %}
+            <li class="dropdown">
+                <a class="dropdown-toggle" data-toggle="dropdown">Settings <b class="caret"></b></a>
+                <ul class="dropdown-menu">
+                    <li class="dropdown-header">Signed in as <strong>{{ session['profile']['name'] }}</strong></li>
+                    <li><a href="http://docs.raw-labs.com/">Documentation</a></li>
+                    <li><a href="https://www.youtube.com/playlist?list=PLK2r8sdyiq2UHBj62rmN_FsanQQ3T0CHP"><strong>Tutorials</strong></a>
+                    </li>
+                    <li class="divider"></li>
+                    <li><a  href="{{ url_for('do_logout') }}">Sign out</a></li>
+                </ul>
+            </li>
+        </ul>
+        {% endif %}
+    </div>
+</div>>
+
+
+<!-- Begin page content -->
+<div class="container-fluid">
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-block alert-error fade in">
+        <a class="close" data-dismiss="alert">&times;</a>
+        {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+</div>
+
+<div id="footer">
+    <div class="container">
+        <p class="text-muted pull-left">
+            &copy; 2015 - {{ now.year }} RAW Labs SA
+        </p>
+        {% block footer %}{% endblock %}
+    </div>
+</div>
+
+<script>
+    window.jQuery || document.write('<script type="text/javascript" src="/static/js/libs/jquery-1.11.1.min.js"><\/script>')
+</script>
+<!--<script type="text/javascript" src="/static/js/libs/bootstrap-3.1.1.min.js" defer></script>-->
+<script type="text/javascript" src="/static/js/plugins.js" defer></script>
+<script type="text/javascript" src="/static/js/script.js" defer></script>
+
+</body>
+</html>

@@ -1,0 +1,208 @@
+{% extends 'layouts/main.html' %}
+{% block title %}Machines{% endblock %}
+
+
+{% block content %}
+<style>
+
+#row-machines {
+    height: 500px;
+}
+
+#row-warnings {
+    height: 300px;
+}
+
+#failures-month {
+    height: 50%;
+}
+
+#failures-machine {
+    height: 50%;
+}
+
+#machines-geo {
+    height: 100%;
+
+}
+
+table {
+    font-size: 100%;
+}
+
+#machines-table {
+    height: 500px;
+}
+
+#warnings-table {
+    height: 100%;
+}
+
+.table-container {
+    overflow: auto;
+    /*height: 100%;*/
+}
+
+table {
+    font-size: 80%;
+}
+
+</style>
+
+<div id="main-cont" class="container-fluid">
+    <div class="col-md-7">
+        <div class="panel panel-default">
+            <div class="panel-heading">Machines</div>
+            <div class="panel-body">
+                <div class="row" id="row-machines">
+                    <div class="col-md-5">
+                        <div id="machines-table" class="table-container">
+                            <table class="table table-striped">
+                                <thead>
+                                <tr>
+                                    <th scope="col">id</th>
+                                    <th scope="col">model</th>
+                                    <th scope="col">age</th>
+                                    <th scope="col">Last Maintenance</th>
+                                    <th scope="col">Status</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-md-7 plot" id="machines-geo"></div>
+                </div>
+                <div class="row" id="row-warnings">
+                    <div class="table-container" id="warnings-table">
+                        <table class="table table-striped">
+                            <thead>
+                            <tr>
+                                <th scope="col"></th>
+                                <th scope="col">Timestamp</th>
+                                <th scope="col">Severity</th>
+                                <th scope="col">Message</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-5">
+        <div class="row plot" id="failures-month"></div>
+        <div class="row plot" id="failures-machine"></div>
+    </div>
+</div>
+
+<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?libraries=places&key=AIzaSyC4o8qkCrbHngwyPSIizV2RGHmyvDmgmXM"></script>
+<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+<script type="text/javascript" src="/static/js/plotly-latest.min.js"></script>
+
+<script type="text/javascript">
+google.load("visualization", "1", {packages:["corechart", "table", "geochart", "map"]});
+
+Utils.request('{{url_for('machines_list')}}', {
+    selector: '#row-machines',
+    success: function(data, widget) {
+        // drawing table
+        //TODO: check howto do this with {{ url_for('home') }}
+        var rows = data.map(function(x) {
+            return `<tr></th><td>{0}</td><td>{1}</td><td>{2}</td>
+                        <td>{3}</td><td><a href="{5}">{4}</a></td></tr>`
+                .format(x.id, x.model, x.age, x.lmaint, x.status,x.url)
+        });
+        widget.find('#machines-table tbody').html(rows.join('\n'));
+
+        // Drawing geo plot
+        var geoData = [["lat", "long", "msg", "icon"]];
+        data.forEach(function(x) {
+            geoData.push(
+                [x.lat, x.long,"machine {0}, {1}".format(x.id, x.model), x.model]
+            );
+        })
+
+        var t = google.visualization.arrayToDataTable(geoData);
+        var chart = new google.visualization.Map($('#machines-geo').get(0));
+        // configuring icons
+        var models = ["model1", "model2", "model3", "model4"];
+        icons = {}
+
+        for(var i = 0; i < models.length; i ++) {
+            icons[models[i]] = {
+                normal: Utils.machineIcon(models[i], 32),
+                selected: Utils.machineIcon(models[i], 48),
+            }
+        }
+
+        options = {
+            mapType: 'normal',
+            showTip: true,
+            icons: icons
+        }
+
+        chart.draw(t, options);
+    }
+});
+
+Utils.request('{{url_for('machines_warnings')}}', {
+    selector: '#warnings-table',
+    success: function(data, widget) {
+        var rows = data.map(function(x) {
+            var icon = '';
+            if (x.level == 'Info') {
+                icon = '<span class="glyphicon glyphicon-exclamation-sign"></span>'
+            } else if (x.level == 'Warning') {
+                icon = '<span class="glyphicon glyphicon-warning-sign"></span>'
+            } else if (x.level == 'Error') {
+                 icon = '<span class="glyphicon glyphicon-remove-sign"></span>'
+            } else {
+                icon = ''
+            }
+            msg = '<a href="/machine/{0}">{1}</a>'.format(x.machine_id, x.msg)
+            return `<tr><td>{0}</td><td>{1}</td><td>{2}</td><td>{3}</td></tr>`.format(icon, x.timestamp, x.level, msg)
+        });
+
+        widget.find('tbody').html(rows.join('\n'));
+    }
+});
+
+Utils.request('{{url_for('machines_failures_month')}}', {
+    selector: '#failures-month',
+    success: function(data, widget) {
+        var labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        var traces = [];
+        for(var i = 0 ; i < 4 ; i++) {
+
+            traces.push({
+                x: labels,
+                y: data.map(function(x) {return x._2[i];}),
+                name: "model " + (i + 1),
+                type: "scatter"
+            })
+        }
+        Plotly.newPlot(widget.get(0), traces, { title:'Failures last year'});
+    }
+});
+
+Utils.request('{{url_for('machines_failures_model')}}', {
+    selector: '#failures-machine',
+    success: function(data, widget) {
+        var traces = [{
+            x: data.map(x => x.machine),
+            y: data.map(x => x.N),
+            type: 'bar'
+        }];
+        Plotly.newPlot(widget.get(0), traces, { title:'Machines with most failures'});
+    }
+});
+
+</script>
+
+
+
+{% endblock %}
