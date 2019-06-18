@@ -13,8 +13,6 @@ SECRET_KEY = 'my precious'
 
 SESSION_TYPE = 'filesystem'
 
-# OPTIONS auth0 (oauth using auth0), default (using raw.ini file)
-RAW_AUTH = 'default'
 
 AUTH0_DOMAIN = 'raw.eu.auth0.com'
 OAUTH_CLIENT_ID = env['RAW_AUTH_ID']

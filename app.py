@@ -51,16 +51,14 @@ def requires_auth(f):
 
 
 def create_client(session):
-    if app.config['RAW_AUTH'] == 'auth0':
-        return new_raw_client(
-            executor_url=app.config['EXECUTOR_URL'],
-            creds_url=app.config['CREDS_URL'],
-            auth='auth0',
-            auth0_auth_type='access_token',
-            access_token=session['token_info']['access_token']
-        )
-    else:
-        return new_raw_client()
+    return new_raw_client(
+        executor_url=app.config['EXECUTOR_URL'],
+        creds_url=app.config['CREDS_URL'],
+        auth='auth0',
+        auth0_auth_type='access_token',
+        access_token=session['token_info']['access_token']
+    )
+
 
 
 def init_packages(session):
@@ -111,26 +109,20 @@ def home():
 # Here we're using the /callback route.
 @app.route('/callback')
 def callback_handling():
-    if app.config['RAW_AUTH'] == 'auth0':
-        # Handles response from token endpoint
-        # Stores token in flask session
-        session['token_info'] = auth0.authorize_access_token()
-        resp = auth0.get('userinfo')
-        userinfo = resp.json()
+    # Handles response from token endpoint
+    # Stores token in flask session
+    session['token_info'] = auth0.authorize_access_token()
+    resp = auth0.get('userinfo')
+    userinfo = resp.json()
 
-        # Store the user information in flask session.
-        session['jwt_payload'] = userinfo
-        session['profile'] = {
-            'user_id': userinfo['sub'],
-            'name': userinfo['name'],
-            'picture': userinfo['picture']
-        }
-    else:
-        session['profile'] = {
-            'user_id': 'local',
-            'name': 'local user',
-            'picture': ''
-        }
+    # Store the user information in flask session.
+    session['jwt_payload'] = userinfo
+    session['profile'] = {
+        'user_id': userinfo['sub'],
+        'name': userinfo['name'],
+        'picture': userinfo['picture']
+    }
+
     # initializes raw-client, buckets, etc.
     init_packages(session)
     return redirect(url_for('machines'))
@@ -138,12 +130,8 @@ def callback_handling():
 
 @app.route('/login')
 def login():
-    if app.config['RAW_AUTH'] == 'auth0':
-        return auth0.authorize_redirect(redirect_uri=url_for('callback_handling', _external=True),
-                                        audience=app.config['OAUTH_AUDIENCE'])
-    else:
-        # Skips the auth0 login
-        return redirect(url_for('callback_handling'))
+    return auth0.authorize_redirect(redirect_uri=url_for('callback_handling', _external=True),
+                                    audience=app.config['OAUTH_AUDIENCE'])
 
 
 @app.route('/logout')
@@ -155,11 +143,9 @@ def logout():
 def do_logout():
     # Clear session stored data
     session.clear()
-    if app.config['RAW_AUTH'] == 'auth0':
-        params = {'returnTo': url_for('logout', _external=True), 'client_id': app.config['OAUTH_CLIENT_ID']}
-        return redirect(app.config['OAUTH_LOGOUT_URL'] + urlencode(params))
-    else:
-        return redirect(url_for('logout'))
+    params = {'returnTo': url_for('logout', _external=True), 'client_id': app.config['OAUTH_CLIENT_ID']}
+    return redirect(app.config['OAUTH_LOGOUT_URL'] + urlencode(params))
+
 
 
 @app.route('/diabetes/train')
