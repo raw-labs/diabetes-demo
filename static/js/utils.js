@@ -47,18 +47,6 @@ Utils.createSpinner = function() {
     return spinner;
 }
 
-Utils.machineIcon = function(model, size) {
-    switch(model) {
-            case 'model1':
-                return "/static/img/machines/icons8-bot-{0}.png".format(size);
-            case 'model2':
-                return "/static/img/machines/icons8-robot-3-{0}.png".format(size);
-            case 'model3':
-                return "/static/img/machines/icons8-robot-2-{0}.png".format(size)
-            case 'model4':
-                return "/static/img/machines/icons8-robot-{0}.png".format(size)
-    }
-}
 
 // taken from https://stackoverflow.com/questions/610406/javascript-equivalent-to-printf-string-format
 // First, checks if it isn't implemented yet.
