@@ -15,8 +15,8 @@ SESSION_TYPE = 'filesystem'
 
 
 AUTH0_DOMAIN = 'raw.eu.auth0.com'
-OAUTH_CLIENT_ID = env['RAW_AUTH_ID']
-OAUTH_CLIENT_SECRET = env['RAW_AUTH_SECRET']
+OAUTH_CLIENT_ID = ''
+OAUTH_CLIENT_SECRET = ''
 OAUTH_API_BASE_URL = 'https://%s' % AUTH0_DOMAIN
 OAUTH_ACCESS_TOKEN_URL = 'https://%s/oauth/token' % AUTH0_DOMAIN
 OAUTH_AUTHORIZE_URL = 'https://%s/authorize' % AUTH0_DOMAIN

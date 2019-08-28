@@ -22,17 +22,6 @@ app = Flask(__name__)
 app.config.from_object('config')
 oauth = OAuth(app)
 
-auth0 = oauth.register(
-    'auth0',
-    client_id=app.config['OAUTH_CLIENT_ID'],
-    client_secret=app.config['OAUTH_CLIENT_SECRET'],
-    api_base_url=app.config['OAUTH_API_BASE_URL'],
-    access_token_url=app.config['OAUTH_ACCESS_TOKEN_URL'],
-    authorize_url=app.config['OAUTH_AUTHORIZE_URL'],
-    client_kwargs={
-        'scope': 'openid profile',
-    },
-)
 
 logging.basicConfig(
     level='INFO'
@@ -51,13 +40,7 @@ def requires_auth(f):
 
 
 def create_client(session):
-    return new_raw_client(
-        executor_url=app.config['EXECUTOR_URL'],
-        creds_url=app.config['CREDS_URL'],
-        auth='auth0',
-        auth0_auth_type='access_token',
-        access_token=session['token_info']['access_token']
-    )
+    return new_raw_client()
 
 
 
@@ -141,10 +124,7 @@ def logout():
 
 @app.route('/do_logout')
 def do_logout():
-    # Clear session stored data
-    session.clear()
-    params = {'returnTo': url_for('logout', _external=True), 'client_id': app.config['OAUTH_CLIENT_ID']}
-    return redirect(app.config['OAUTH_LOGOUT_URL'] + urlencode(params))
+    return redirect(url_for('logout'))
 
 
 
