@@ -92,18 +92,10 @@ def home():
 # Here we're using the /callback route.
 @app.route('/callback')
 def callback_handling():
-    # Handles response from token endpoint
-    # Stores token in flask session
-    session['token_info'] = auth0.authorize_access_token()
-    resp = auth0.get('userinfo')
-    userinfo = resp.json()
-
-    # Store the user information in flask session.
-    session['jwt_payload'] = userinfo
     session['profile'] = {
-        'user_id': userinfo['sub'],
-        'name': userinfo['name'],
-        'picture': userinfo['picture']
+        'user_id': 'user',
+        'name': 'user',
+        'picture': ''
     }
 
     # initializes raw-client, buckets, etc.
@@ -113,8 +105,7 @@ def callback_handling():
 
 @app.route('/login')
 def login():
-    return auth0.authorize_redirect(redirect_uri=url_for('callback_handling', _external=True),
-                                    audience=app.config['OAUTH_AUDIENCE'])
+    return redirect('callback')
 
 
 @app.route('/logout')
@@ -124,6 +115,7 @@ def logout():
 
 @app.route('/do_logout')
 def do_logout():
+    session.clear()
     return redirect(url_for('logout'))
 
 
