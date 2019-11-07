@@ -1,3 +1,4 @@
+authlib
 Fabric
 Flask-SQLAlchemy
 Flask-WTF
