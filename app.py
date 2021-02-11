@@ -1,18 +1,15 @@
 # ----------------------------------------------------------------------------#
 # Imports
 # ----------------------------------------------------------------------------#
-
 import datetime
 import glob
 import logging
 import os
-from functools import wraps
+import subprocess
 from logging import Formatter, FileHandler
 
-from authlib.flask.client import OAuth
-from flask import Flask, render_template, request, jsonify, url_for, session, redirect
-from rawapi import new_raw_client
-from six.moves.urllib.parse import urlencode
+from flask import Flask, render_template, request, jsonify, url_for, redirect
+from rawapi import new_raw_client, RawException, Unauthorized
 
 # ----------------------------------------------------------------------------#
 # App Config.
@@ -20,57 +17,90 @@ from six.moves.urllib.parse import urlencode
 
 app = Flask(__name__)
 app.config.from_object('config')
-oauth = OAuth(app)
-
 
 logging.basicConfig(
     level='INFO'
 )
 
 
-def requires_auth(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if 'profile' not in session:
-            # Redirect to Login page here
-            return redirect('/login')
-        return f(*args, **kwargs)
-
-    return decorated
-
-
-def create_client(session):
+def get_client():
     return new_raw_client()
 
 
+client = get_client()
 
-def init_packages(session):
-    """Initializes packages, s3 buckets, etc for this session"""
-    client = create_client(session)
-    # Registering buckets
-    with open(os.path.join('raw_ini', 'buckets.txt')) as f:
-        buckets = client.buckets_list()
-        for line in f.readlines():
-            values = line.split()
-            if len(values) < 1:
-                continue
 
-            name = values[0]
-            region = values[1] if len(values) >= 2 else None
-            access_key = values[2] if len(values) >= 3 else None
-            secret_key = values[3] if len(values) >= 4 else None
+def query(q):
+    return client.query(q)
 
-            if name not in buckets:
-                app.logger.info('Registering bucket s3://%s' % name)
-                client.buckets_register(name, region, access_key, secret_key)
 
-    packages = client.packages_list_names()
-    # Registering packages
-    for filename in glob.glob(os.path.join('raw_ini', 'packages/*.rql')):
-        name = os.path.basename(filename[:-4])
-        if name in packages:
-            app.logger.warning('overwriting package %s' % name)
-            client.packages_delete(name)
+def read_values(f, properties):
+    output = []
+    for line in f.readlines():
+        values = line.split()
+        if len(values) < 1:
+            continue
+        d = dict()
+
+        for n, name in enumerate(properties):
+            if n < len(values):
+                d[name] = values[n]
+            else:
+                d[name] = None
+        output.append(d)
+    return output
+
+
+"""Initializes packages, s3 buckets, etc for this session"""
+# Registering buckets
+with open(os.path.join('raw_ini', 'buckets.txt')) as f:
+    buckets = client.buckets_list()
+    config = read_values(f, ["name", "region", "access_key", "secret_key"])
+    for b in config:
+        if b["name"] not in buckets:
+            app.logger.info('Registering bucket s3://%s' % b["name"])
+            client.buckets_register(b["name"], b["region"], b["access_key"], b["secret_key"])
+
+try:
+    with open(os.path.join('raw_ini', 'rdbms.txt')) as f:
+        servers = client.rdbms_list()
+        config = read_values(f, ["name", "type", "host", "port", "db", "user", "passwd"])
+        for s in config:
+            if s["name"] not in servers:
+                if s["type"] == "postgresql":
+                    client.rdbms_register_postgresql(s["name"], s["host"], s["db"], int(s["port"]), s["user"],
+                                                     s["passwd"])
+                elif s["type"] == "sqlserver":
+                    client.rdbms_register_sqlserver(s["name"], s["host"], s["db"], int(s["port"]), s["user"],
+                                                    s["passwd"])
+                elif s["type"] == "oracle":
+                    client.rdbms_register_oracle(s["name"], s["host"], s["db"], int(s["port"]), s["user"], s["passwd"])
+                elif s["type"] == "mysql":
+                    client.rdbms_register_mysql(s["name"], s["host"], s["db"], int(s["port"]), s["user"], s["passwd"])
+                else:
+                    app.logger.error('unsupported database type %s, skipping' % s["type"])
+except FileNotFoundError:
+    app.logger.info("no file found with dbms servers")
+
+views = client.views_list_names()
+print(views)
+# creating views
+files = glob.glob(os.path.join('raw_ini', 'views/*.rql'))
+files.sort()
+for filename in files:
+    # view filenames are prepended with a number '01_' which specifies the order for creating the view
+    # so removing first 3 characters and last 4 (file extension)
+    name = os.path.basename(filename)[3:-4]
+    if name not in views:
+        with open(filename) as f:
+            app.logger.info('creating view %s' % name)
+            client.views_create(name, f.read())
+
+packages = client.packages_list_names()
+# Registering packages
+for filename in glob.glob(os.path.join('raw_ini', 'packages/*.rql')):
+    name = os.path.basename(filename[:-4])
+    if name not in packages:
         with open(filename) as f:
             app.logger.info('registering package %s' % name)
             client.packages_create(name, f.read())
@@ -89,44 +119,11 @@ def home():
     return redirect(url_for('diabetes'))
 
 
-# Here we're using the /callback route.
-@app.route('/callback')
-def callback_handling():
-    session['profile'] = {
-        'user_id': 'user',
-        'name': 'user',
-        'picture': ''
-    }
-
-    # initializes raw-client, buckets, etc.
-    init_packages(session)
-    return redirect(url_for('diabetes'))
-
-
-@app.route('/login')
-def login():
-    return redirect('callback')
-
-
-@app.route('/logout')
-def logout():
-    return render_template('pages/logged_out.html')
-
-
-@app.route('/do_logout')
-def do_logout():
-    session.clear()
-    return redirect(url_for('logout'))
-
-
-
 @app.route('/diabetes/train')
-@requires_auth
 def diabetes_train():
-    client = create_client(session)
     f1 = request.args.get('f1')
     f2 = request.args.get('f2')
-    results = client.query('''
+    results = query('''
         predict := \python(x: collection(collection(double)), y: collection(double)): record(
                                                                                         prediction: mdarray(double, x), 
                                                                                         coef: mdarray(double, x), 
@@ -152,7 +149,6 @@ def diabetes_train():
 
 
 @app.route('/diabetes')
-@requires_auth
 def diabetes():
     return render_template('pages/diabetes.html')
 
@@ -187,7 +183,7 @@ if not app.debug:
 
 # Default port:
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True, port=5010)
 
 # Or specify port manually:
 '''

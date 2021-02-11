@@ -12,7 +12,7 @@
 
 .plot3d {
   width: 100%;
-  height: 800px;
+  height: 900px;
 }
 
 .input-col {
@@ -54,52 +54,71 @@
 
 </style>
 
-<div class="row">
-    <div class="input-col">
-        <select id="feature1" class="form-control" >
-            <option value="BMI">BMI</option>
-            <option value="AGE">Age</option>
-            <option value="SEX">Gender</option>
-            <option value="BP">Blood Pressure</option>
-            <option value="S1">Serum 1</option>
-            <option value="S2">Serum 2</option>
-            <option value="S3">Serum 3</option>
-            <option value="S4">Serum 4</option>
-            <option value="S5">Serum 5</option>
-            <option value="S6">Serum 6</option>
-        </select>
-        <input id="predict1" class="form-control" type="number" placeholder="Value 1">
-    </div>
-    <div class="input-col">
-        <select id="feature2" class="form-control" >
-            <option value="AGE">Age</option>
-            <option value="SEX">Gender</option>
-            <option value="BMI">BMI</option>
-            <option value="BP">Blood Pressure</option>
-            <option value="S1">Serum 1</option>
-            <option value="S2">Serum 2</option>
-            <option value="S3">Serum 3</option>
-            <option value="S4">Serum 4</option>
-            <option value="S5">Serum 5</option>
-            <option value="S6">Serum 6</option>
-        </select>
-        <input id="predict2" class="form-control" type="number" placeholder="Value 2">
-    </div>
-    <div class="input-col">
-        <button class="btn btn-default" type="button" id="create-model-btn">Create Model</button>
-        <button class="btn btn-default" type="button" id="predict-btn" disabled>Predict</button>
+<div class="row row1">
+	<div class="panel panel-default">
+    	<div class="panel-heading"><strong>Select features</strong></div>
+    	<div class="panel-body">
+    	
+   			<div class="input-col">
+        		<select id="feature1" class="form-control" >
+            		<option value="BMI">BMI</option>
+            		<option value="AGE">Age</option>
+            		<option value="SEX">Gender</option>
+            		<option value="BP">Blood Pressure</option>
+            		<option value="S1">Serum 1</option>
+            		<option value="S2">Serum 2</option>
+            		<option value="S3">Serum 3</option>
+            		<option value="S4">Serum 4</option>
+            		<option value="S5">Serum 5</option>
+            		<option value="S6">Serum 6</option>
+        		</select>
+        		<input id="predict1" class="form-control" type="number" placeholder="Value 1">
+    		</div>
+    		<div class="input-col">
+        		<select id="feature2" class="form-control" >
+            		<option value="AGE">Age</option>
+            		<option value="SEX">Gender</option>
+            		<option value="BMI">BMI</option>
+            		<option value="BP">Blood Pressure</option>
+            		<option value="S1">Serum 1</option>
+            		<option value="S2">Serum 2</option>
+            		<option value="S3">Serum 3</option>
+            		<option value="S4">Serum 4</option>
+            		<option value="S5">Serum 5</option>
+            		<option value="S6">Serum 6</option>
+        		</select>
+        		<input id="predict2" class="form-control" type="number" placeholder="Value 2">
+    		</div>
+    		<div class="input-col">
+        		<button class="btn btn-default" type="button" id="create-model-btn">Create Model</button>
+        		<button class="btn btn-default" type="button" id="predict-btn" disabled>Predict</button>
+    		</div>
+    		
+    	</div>
     </div>
 </div>
-<div class="row" id="row-plots">
-    <div class="col-md-5">
-        <div id="plot1" class="plot"></div>
-        <div id="plot2" class="plot"></div>
+    
+<div class="row row1" id="row-plots">
+    <div class="col-md-4">
+    	<div class="panel panel-default">
+    		<div class="panel-heading"><strong>Features</strong></div>
+    		<div class="panel-body">
+        		<div id="plot1" class="plot"></div>
+        		<div id="plot2" class="plot"></div>
+        	</div>
+		</div>
     </div>
-    <div class="col-md-7">
-        <div id="plot3" class="plot3d"></div>
+    <div class="col-md-8">
+    	<div class="panel panel-default">
+    		<div class="panel-heading"><strong>3D Model</strong></div>
+    		<div class="panel-body">
+        		<div id="plot3" class="plot3d"></div>
+        	</div>
+        </div>
     </div>
+</div>
+	
 
-</div>
 
 <div class="modal fade" tabindex="-1" role="dialog" id="predict-dialog">
     <div class="modal-dialog modal-lg">
@@ -151,16 +170,19 @@ $("#create-model-btn").on("click", function(){
             var feature1 = results.xyz.map(function(x) {return x.x;});
             var feature2 = results.xyz.map(function(x) {return x.y;});
 
-            Plotly.newPlot("plot1", [
+            const plotValues1 = [
                 {name: "score",  x: feature1, y: target, type: "scatter", mode: "markers"},
                 {name: "linear fit", x: feature1, y: results.predict1.prediction, type: "scatter", mode: "line"},
-            ], { title: f1});
+            ];
+            
+            Plotly.newPlot("plot1", plotValues1, { title: f1, yaxis: {title: 'score'}});
 
-
-            Plotly.newPlot("plot2", [
+			const plotValues2 = [
                 {name: "score",  x: feature2, y: target, type: "scatter", mode: "markers"},
                 {name: "linear fit",  x: feature2, y: results.predict2.prediction, type: "scatter", mode: "line"},
-            ], { title: f2});
+            ];
+
+            Plotly.newPlot("plot2", plotValues2, { title: f2, yaxis: {title: 'score'}});
 
             const plotValues = [
                 {name: "scores", x: feature1, y: feature2, z: target, type: "scatter3d", mode: "markers", marker:{size:2}},
@@ -168,7 +190,7 @@ $("#create-model-btn").on("click", function(){
             ];
 
 
-            Plotly.newPlot("plot3", plotValues, { title: "{0} and {1}".format(f1, f2)});
+            Plotly.newPlot("plot3", plotValues, { title: "{0} and {1}".format(f1, f2), scene: {xaxis:{title: f1},yaxis:{title: f2},zaxis:{title: 'score'}}});
 
             $('#predict-row').removeClass('hidden');
 
@@ -186,10 +208,10 @@ $("#create-model-btn").on("click", function(){
             }
 
             $("#predict-btn").on("click", function(){
-                const f1 = parseFloat($('#predict1').val());
-                const f2 = parseFloat($('#predict2').val());
+                const fe1 = parseFloat($('#predict1').val());
+                const fe2 = parseFloat($('#predict2').val());
 
-                if (f1 == "" || f2 == "" ) {
+                if (fe1 == "" || fe2 == "" ) {
                     alert("missing value for prediction");
                     return;
                 }
@@ -197,8 +219,8 @@ $("#create-model-btn").on("click", function(){
                 var min = $('#predict-dialog .slider').attr('min')
                 var max = $('#predict-dialog .slider').attr('max')
 
-                score = predict(f1, f2)
-                var msg = 'The Score is: ' + score;
+                score = predict(fe1, fe2)
+                var msg = 'Your Score is: ' + score;
                 if (score < 120) {
                     msg += ", great!"
                 } else if (score >= 120 && score < 200) {
@@ -211,9 +233,15 @@ $("#create-model-btn").on("click", function(){
                 $("#predict-dialog .modal-title").html(msg);
                 $("#predict-dialog").modal("show");
 
-                var newValues = plotValues.slice();
-                newValues.push({name: "you are here", x: [f1], y: [f2], z: [score] , type: "scatter3d", mode: "markers", marker:{size:10, color: 'rgb(255, 0, 0)'}})
-                Plotly.newPlot("plot3", newValues);
+                var newValues1 = plotValues1.slice();
+                newValues1.push({name: "you are here", x: [fe1], y: [score], type: "scatter", mode: "markers", marker:{size:20, color: 'rgb(255, 0, 0)'}});
+                Plotly.newPlot("plot1", newValues1, { title: f1, yaxis: {title: 'score'}});
+                var newValues2 = plotValues2.slice();
+                newValues2.push({name: "you are here", x: [fe2], y: [score], type: "scatter", mode: "markers", marker:{size:20, color: 'rgb(255, 0, 0)'}});
+                Plotly.newPlot("plot2", newValues2, { title: f2, yaxis: {title: 'score'}});
+                var newValues3 = plotValues.slice();
+                newValues3.push({name: "you are here", x: [fe1], y: [fe2], z: [score] , type: "scatter3d", mode: "markers", marker:{size:10, color: 'rgb(255, 0, 0)'}});
+                Plotly.newPlot("plot3", newValues3, { title: "{0} and {1}".format(f1, f2), scene: {xaxis:{title: f1}, yaxis:{title: f2}, zaxis:{title: 'score'}}});
 
             });
         }
